@@ -1,2 +1,12 @@
-fastapi==0.115.2
-uvicorn[standard]==0.32.0
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+pydantic-settings
+python-dotenv
+passlib[argon2]
+python-jose[cryptography]
+python-multipart
+fastapi-mail
+python-telegram-bot
+jinja2
