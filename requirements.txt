@@ -11,3 +11,4 @@ fastapi-mail
 python-telegram-bot
 jinja2
 psycopg2-binary
+# Force rebuild
