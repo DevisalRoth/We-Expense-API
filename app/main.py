@@ -24,6 +24,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # Dependency
 def get_db():
+    if SessionLocal is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
     db = SessionLocal()
     try:
         yield db
