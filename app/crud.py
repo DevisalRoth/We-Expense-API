@@ -44,43 +44,49 @@ def get_expenses(db: Session, user_id: str, skip: int = 0, limit: int = 100):
     return db.query(models.Expense).filter(models.Expense.user_id == user_id).offset(skip).limit(limit).all()
 
 def create_expense(db: Session, expense: schemas.ExpenseCreate, user_id: str):
-    db_expense = models.Expense(
-        user_id=user_id,
-        title=expense.title,
-        amount=expense.amount,
-        date=expense.date,
-        category=expense.category.value, # Store the string value
-        receipt_data=expense.receipt_data,
-        recipient_email=expense.recipient_email
-    )
-    db.add(db_expense)
-    db.commit()
-    db.refresh(db_expense)
-    
-    # Create splits if any
-    for split in expense.splits:
-        db_split = models.Split(
-            expense_id=db_expense.id,
-            name=split.name,
-            initials=split.initials,
-            amount=split.amount
+    try:
+        db_expense = models.Expense(
+            user_id=user_id,
+            title=expense.title,
+            amount=expense.amount,
+            date=expense.date,
+            category=expense.category.value, # Store the string value
+            receipt_data=expense.receipt_data,
+            recipient_email=expense.recipient_email
         )
-        db.add(db_split)
-    
-    # Create items if any
-    for item in expense.items:
-        db_item = models.ExpenseItem(
-            expense_id=db_expense.id,
-            name=item.name,
-            price=item.price,
-            quantity=item.quantity,
-            image_data=item.image_data
-        )
-        db.add(db_item)
-    
-    db.commit()
-    db.refresh(db_expense)
-    return db_expense
+        db.add(db_expense)
+        db.commit()
+        db.refresh(db_expense)
+        
+        # Create splits if any
+        for split in expense.splits:
+            db_split = models.Split(
+                expense_id=db_expense.id,
+                name=split.name,
+                initials=split.initials,
+                amount=split.amount
+            )
+            db.add(db_split)
+        
+        # Create items if any
+        for item in expense.items:
+            db_item = models.ExpenseItem(
+                expense_id=db_expense.id,
+                name=item.name,
+                price=item.price,
+                quantity=item.quantity,
+                image_data=item.image_data
+            )
+            db.add(db_item)
+        
+        db.commit()
+        db.refresh(db_expense)
+        return db_expense
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error creating expense: {str(e)}")
+        # Raise it again so FastAPI can handle it (or return None)
+        raise e
 
 def delete_expense(db: Session, expense_id: str, user_id: str):
     db_expense = db.query(models.Expense).filter(models.Expense.id == expense_id, models.Expense.user_id == user_id).first()
