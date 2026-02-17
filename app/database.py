@@ -4,21 +4,19 @@ from sqlalchemy.orm import sessionmaker
 
 import os
 
-# Check if running on Vercel
-IS_VERCEL = os.getenv("VERCEL") == "1"
+# Get DATABASE_URL from environment variable (Vercel/Supabase)
+# If not set, fallback to local SQLite for development
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./expenses.db")
 
-if IS_VERCEL:
-    # Use /tmp directory for SQLite on Vercel (ephemeral)
-    SQLALCHEMY_DATABASE_URL = "sqlite:////tmp/expenses.db"
-else:
-    # Use local directory for development
-    SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./expenses.db")
-
-# Handle Postgres URL if provided (Vercel uses postgres:// but SQLAlchemy needs postgresql://)
+# Handle Postgres URL if provided (Supabase/Vercel uses postgres:// but SQLAlchemy needs postgresql://)
 if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-connect_args = {"check_same_thread": False} if "sqlite" in SQLALCHEMY_DATABASE_URL else {}
+# Check if using SQLite
+is_sqlite = "sqlite" in SQLALCHEMY_DATABASE_URL
+
+# Connect args for SQLite only
+connect_args = {"check_same_thread": False} if is_sqlite else {}
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args=connect_args
