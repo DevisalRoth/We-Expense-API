@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import List
 from jose import JWTError, jwt
 
@@ -99,6 +100,15 @@ async def read_users_me(current_user: schemas.User = Depends(get_current_user)):
 async def update_user_me(user_update: schemas.UserUpdate, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
     updated_user = crud.update_user(db, user_id=current_user.id, user_update=user_update)
     return updated_user
+
+@app.get("/db-test")
+def test_db_connection(db: Session = Depends(get_db)):
+    try:
+        # Try a simple query
+        result = db.execute(text("SELECT 1")).scalar()
+        return {"status": "ok", "result": result, "db_url": str(engine.url).replace(":", "***")}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
 
 @app.get("/")
 def read_root():
