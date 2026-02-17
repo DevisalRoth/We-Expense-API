@@ -4,9 +4,23 @@ from sqlalchemy.orm import sessionmaker
 
 import os
 
-# Get DATABASE_URL from environment variable (Vercel/Supabase)
-# If not set, fallback to local SQLite for development
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./expenses.db")
+# 1. Force check for Vercel System Env Var first
+# This ensures we ignore any local .env file or default if DATABASE_URL is set in Vercel UI
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if not DATABASE_URL:
+    # If not in system env, try loading from .env file (local dev)
+    from dotenv import load_dotenv
+    load_dotenv()
+    DATABASE_URL = os.getenv("DATABASE_URL")
+
+# 2. Fallback to SQLite only if absolutely no Postgres URL found
+if not DATABASE_URL:
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./expenses.db"
+    print("⚠️ WARNING: Using SQLite database (read-only on Vercel!)")
+else:
+    SQLALCHEMY_DATABASE_URL = DATABASE_URL
+    print(f"✅ Using Database: {SQLALCHEMY_DATABASE_URL.split('@')[1] if '@' in SQLALCHEMY_DATABASE_URL else 'Unknown'}")
 
 # Handle Postgres URL if provided (Supabase/Vercel uses postgres:// but SQLAlchemy needs postgresql://)
 if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
