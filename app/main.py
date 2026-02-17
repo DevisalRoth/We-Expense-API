@@ -10,7 +10,12 @@ from .email import send_receipt_email
 from .telegram_bot import send_telegram_notification
 
 # Create tables
-models.Base.metadata.create_all(bind=engine)
+try:
+    models.Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"⚠️ Error creating tables on startup: {e}")
+    # Don't crash here, let the app start. The endpoint requests might fail later if tables don't exist,
+    # but at least we'll get logs instead of a hard crash.
 
 app = FastAPI()
 
