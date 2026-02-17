@@ -8,7 +8,7 @@ import os
 # Since Vercel Env Var is not being picked up, we use this directly.
 # Ideally, this should be hidden, but we need it to work now.
 # USING PORT 6543 (Supavisor Transaction Pooler) instead of 5432 to avoid connection limits/timeouts
-DATABASE_URL = "postgresql://postgres:Roth%40168Roth@db.qqozemdmfzftyltkoevl.supabase.co:6543/postgres"
+DATABASE_URL = "postgresql://postgres:Roth%40168Roth@db.qqozemdmfzftyltkoevl.supabase.co:6543/postgres?sslmode=require"
 
 # 1. Force check for Vercel System Env Var first
 if os.environ.get("DATABASE_URL"):
