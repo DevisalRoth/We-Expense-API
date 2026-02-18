@@ -1,5 +1,6 @@
 fastapi
 uvicorn[standard]
+gunicorn
 sqlalchemy
 pydantic
 pydantic-settings
@@ -11,4 +12,3 @@ fastapi-mail
 python-telegram-bot
 jinja2
 psycopg2-binary
-# Force rebuild

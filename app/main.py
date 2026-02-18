@@ -8,11 +8,12 @@ from jose import JWTError, jwt
 from . import models, schemas, crud, auth
 from .database import SessionLocal, engine
 from .email import send_receipt_email
-from .telegram_bot import send_telegram_notification
+from .database import SessionLocal, engine, db_init_error, init_db as initialize_database
 
 # Create tables
 try:
-    models.Base.metadata.create_all(bind=engine)
+    if engine:
+        models.Base.metadata.create_all(bind=engine)
 except Exception as e:
     print(f"⚠️ Error creating tables on startup: {e}")
     # Don't crash here, let the app start. The endpoint requests might fail later if tables don't exist,
@@ -25,7 +26,21 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 # Dependency
 def get_db():
     if SessionLocal is None:
-        raise HTTPException(status_code=500, detail="Database not initialized")
+        # Try to initialize again if it failed previously
+        if initialize_database():
+             if SessionLocal:
+                 db = SessionLocal()
+                 try:
+                     yield db
+                 finally:
+                     db.close()
+                 return
+
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Database not initialized. Error: {db_init_error}"
+        )
+    
     db = SessionLocal()
     try:
         yield db
@@ -104,13 +119,61 @@ async def update_user_me(user_update: schemas.UserUpdate, db: Session = Depends(
     return updated_user
 
 @app.get("/db-test")
-def test_db_connection(db: Session = Depends(get_db)):
+def test_db_connection():
+    global engine, SessionLocal
+    
+    status_info = {
+        "status": "unknown",
+        "detail": None,
+        "db_url_masked": "N/A",
+        "init_error": str(db_init_error) if db_init_error else None
+    }
+    
+    # 1. Check if engine is initialized
+    if engine is None:
+        # Try to re-initialize
+        success = initialize_database()
+        if not success:
+            status_info["status"] = "error"
+            status_info["detail"] = "Failed to initialize database engine."
+            status_info["init_error"] = str(db_init_error)
+            return status_info
+            
+    # 2. Get masked URL
     try:
-        # Try a simple query
-        result = db.execute(text("SELECT 1")).scalar()
-        return {"status": "ok", "result": result, "db_url": str(engine.url).replace(":", "***")}
+        url = str(engine.url)
+        if "@" in url:
+            part1 = url.split("@")[0]
+            part2 = url.split("@")[1]
+            status_info["db_url_masked"] = f"{part1.split(':')[0]}:***@{part2}"
+        else:
+            status_info["db_url_masked"] = url
+    except:
+        pass
+
+    # 3. Try actual connection
+    try:
+        if SessionLocal is None:
+             status_info["status"] = "error"
+             status_info["detail"] = "SessionLocal is None"
+             return status_info
+             
+        db = SessionLocal()
+        try:
+            result = db.execute(text("SELECT 1")).scalar()
+            status_info["status"] = "ok"
+            status_info["result"] = result
+        except Exception as e:
+            status_info["status"] = "error"
+            status_info["detail"] = f"Connection failed: {str(e)}"
+        finally:
+            db.close()
+            
     except Exception as e:
-        return {"status": "error", "detail": str(e)}
+        status_info["status"] = "error"
+        status_info["detail"] = f"Unexpected error: {str(e)}"
+        
+    return status_info
 
 @app.get("/")
 def read_root():
