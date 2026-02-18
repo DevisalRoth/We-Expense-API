@@ -13,18 +13,16 @@ Base = declarative_base()
 # Global variables
 engine = None
 SessionLocal = None
-db_init_error = None
 
 def get_database_url():
-    # HARD-CODED FALLBACK FOR DEBUGGING
-    # USING PORT 6543 (Transaction Pooler) to avoid IPv6 issues on Vercel
-    url = "postgresql+psycopg2://postgres:Roth%40168Roth@db.qqozemdmfzftyltkoevl.supabase.co:6543/postgres?sslmode=require"
+    # Default to SQLite for local development (Old Version Configuration)
+    url = "sqlite:///./expenses.db"
     
-    # 1. Force check for Vercel System Env Var first
+    # Override if environment variable is set
     if os.environ.get("DATABASE_URL"):
         url = os.environ.get("DATABASE_URL")
     
-    # Ensure scheme is correct for SQLAlchemy
+    # Ensure scheme is correct for SQLAlchemy (if using Postgres)
     if url and url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql+psycopg2://", 1)
     elif url and url.startswith("postgresql://"):
@@ -33,7 +31,7 @@ def get_database_url():
     return url
 
 def init_db():
-    global engine, SessionLocal, db_init_error
+    global engine, SessionLocal
     
     url = get_database_url()
     # Mask password for logs

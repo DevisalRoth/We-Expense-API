@@ -8,7 +8,7 @@ from jose import JWTError, jwt
 from . import models, schemas, crud, auth
 from .database import SessionLocal, engine
 from .email import send_receipt_email
-from .database import SessionLocal, engine, db_init_error, init_db as initialize_database
+from .database import SessionLocal, engine, init_db as initialize_database
 
 # Create tables
 try:
@@ -38,7 +38,7 @@ def get_db():
 
         raise HTTPException(
             status_code=500, 
-            detail=f"Database not initialized. Error: {db_init_error}"
+            detail="Database not initialized."
         )
     
     db = SessionLocal()
@@ -125,8 +125,7 @@ def test_db_connection():
     status_info = {
         "status": "unknown",
         "detail": None,
-        "db_url_masked": "N/A",
-        "init_error": str(db_init_error) if db_init_error else None
+        "db_url_masked": "N/A"
     }
     
     # 1. Check if engine is initialized
@@ -136,7 +135,6 @@ def test_db_connection():
         if not success:
             status_info["status"] = "error"
             status_info["detail"] = "Failed to initialize database engine."
-            status_info["init_error"] = str(db_init_error)
             return status_info
             
     # 2. Get masked URL
